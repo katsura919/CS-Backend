@@ -2,9 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require("cors");
+
+//Routes
 const processRoutes = require('./routes/processRoutes');
 const askRoutes = require("./routes/askRoutes");
 const feedbackRoutes = require("./routes/feedbackRoutes");
+const announcementRoutes = require("./routes/announcementRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 app.use(express.json());
@@ -34,6 +38,8 @@ mongoose.connect(`mongodb+srv://katsuragik919:gUxW6bdC56s2bgQE@csbackend.frzm8.m
 app.use('/api/processes', processRoutes);
 app.use("/api/ask", askRoutes);
 app.use("/api/feedback", feedbackRoutes);
+app.use("/api/announcements", announcementRoutes);
+app.use("/api/admin", adminRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
