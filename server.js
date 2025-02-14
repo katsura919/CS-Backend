@@ -9,7 +9,7 @@ const askRoutes = require("./routes/askRoutes");
 const feedbackRoutes = require("./routes/feedbackRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
 const adminRoutes = require("./routes/adminRoutes");
-
+const analyticsRoutes= require("./routes/analyticsRoutes");
 const app = express();
 app.use(express.json());
 
@@ -40,6 +40,8 @@ app.use("/api/ask", askRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/analytics", analyticsRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

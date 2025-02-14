@@ -28,50 +28,50 @@ const retrieveContext = async () => {
 
 exports.askAI = async (req, res) => {
   try {
-    const { query } = req.body;
+    const { query, history } = req.body; // Accepts history separately
     if (!query) return res.status(400).json({ error: "Query is required" });
 
     // Step 1: Retrieve relevant context
     const context = await retrieveContext();
-
-    // Step 2: Generate AI Response
+    
+    // Step 2: Construct AI Prompt with History
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+
+    const formattedHistory = history
+      ?.map((msg) => `**${msg.role === "user" ? "User" : "AI"}:** ${msg.content}`)
+      .join("\n") || ""; // Convert history to readable format
+   
     const prompt = `
-      You are a **helpful and empathetic school assistant** who answers **ONLY school-related questions** in a **friendly and supportive** manner.
+    You are Codey, a friendly and supportive virtual assistant from the USTP IT Faculty. You specialize in helping users with school-related questions.
 
-      ### **Guidelines:**
-      1. If the user asks about a **school process** that exists in the provided context, respond with a **clear, step-by-step guide** using **numbered lists** (1., 2., 3.).  
-        - Format each step with a **number, a bold title, and a brief explanation**.  
-        - Ensure **each step is separated by a blank line** for proper readability.  
+    **Guidelines:**
+    1. **For school-related processes:** Provide step-by-step guides with numbered lists.
+    2. **For sensitive topics:** Respond with empathy and concise guidance.
+    3. **If the question is not school-related:** Politely redirect the user to school-related topics.
+    4. **Keep responses concise, clear, and engaging.**
+    5. **Always ask if the user needs anything else if necessary and match the language that the user is currently using:** 
+    6. **Always Match the language of the user's query. If the user asks in English, respond in English. If the user asks in another language, respond in that language while maintaining clarity and accuracy.**
 
-      2. If the user asks about a **sensitive school-related topic** (e.g., **failing grades, financial struggles, dropping out**):  
-        - **First, express understanding and encouragement** to show empathy.  
-        - Then, provide **concise and helpful guidance** in a **supportive tone**.  
+    **Contextual Information:**
+    ${context}
 
-      3. If the question is about a **school process that is NOT in the provided context**, politely inform the user:  
-        - **“I'm sorry, but I don’t have information about that specific process. I recommend reaching out to [relevant department] for accurate details.”**  
+    **Chat History:**
+    ${formattedHistory}
 
-      4. If the question is **not school-related**, politely respond:  
-        - **“I can only assist with school-related questions. Let me know if you need help with anything related to school!”**  
-
-      5. Be **concise, clear, supportive**, and **avoid redundancy** in your responses.  
-
-      **Contextual Information:**  
-      ${context}  
-
-      **User's Question:**  
-      ${query}
+    **User's Question:**
+    ${query}
     `;
 
+    // Step 3: Generate AI Response
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 
-    // Step 3: Save the Conversation in MongoDB
+    // Step 4: Save only the latest query-response in MongoDB
     const chat = new Chat({ query, response: responseText });
-    const savedChat = await chat.save();
+    await chat.save();
 
-    // Step 4: Return the AI Response
-    res.json({ id: savedChat._id, answer: responseText });
+    // Step 5: Return AI Response
+    res.json({ answer: responseText, id: chat._id });
   } catch (error) {
     console.error("Error querying Gemini AI:", error);
     res.status(500).json({ error: "An error occurred while processing your request" });
