@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(cors({
     origin: function (origin, callback) {
       // Allow both localhost and the deployed frontend
-      const allowedOrigins = ['http://localhost:3000', 'https://mongo-next-js-rho.vercel.app'];
+      const allowedOrigins = ['http://localhost:3000', 'https://admin-codey.vercel.app/'];
       if (allowedOrigins.includes(origin) || !origin) {
         callback(null, true); // Allow the request
       } else {
