@@ -1,25 +1,23 @@
 const Process = require('../models/processModel');
 
 exports.createProcess = async (req, res) => {
-    try {
-      const { title, steps } = req.body;
-      if (!title || !steps || !Array.isArray(steps) || steps.length === 0) {
-        return res.status(400).json({ error: 'Title and at least one step are required.' });
-      }
-      const newProcess = new Process({ title, steps });
-      await newProcess.save();
-      res.status(201).json(newProcess);
-    } catch (error) {
-      console.error('Error creating process:', error); // 👈 Logs the full error in the terminal
-      res.status(500).json({ error: error.message || 'Error creating process.' });
+  try {
+    const { title, description, steps } = req.body;
+    if (!title || !description || !steps || !Array.isArray(steps) || steps.length === 0) {
+      return res.status(400).json({ error: 'Title, description, and at least one step are required.' });
     }
-  };
-  
-  
+    const newProcess = new Process({ title, description, steps });
+    await newProcess.save();
+    res.status(201).json(newProcess);
+  } catch (error) {
+    console.error('Error creating process:', error);
+    res.status(500).json({ error: error.message || 'Error creating process.' });
+  }
+};
 
 exports.getProcesses = async (req, res) => {
   try {
-    const processes = await Process.find();
+    const processes = await Process.find().sort({ createdAt: -1 }); // Sorts by latest created
     res.json(processes);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching processes.' });
@@ -40,10 +38,10 @@ exports.getProcessById = async (req, res) => {
 
 exports.updateProcess = async (req, res) => {
   try {
-    const { title, steps } = req.body;
+    const { title, description, steps } = req.body;
     const updatedProcess = await Process.findByIdAndUpdate(
       req.params.id,
-      { title, steps },
+      { title, description, steps },
       { new: true, runValidators: true }
     );
     if (!updatedProcess) {

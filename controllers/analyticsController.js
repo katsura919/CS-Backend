@@ -31,19 +31,26 @@ exports.getChatResponseStats = async (req, res) => {
   }
 };
 
-// Get response counts for the past 3 months
+
 exports.getResponseCounts = async (req, res) => {
   try {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const { range } = req.query; // Get range from query parameters
+    let daysAgo = 30; // Default to 30 days
+
+    // Set days based on range
+    if (range === "7d") daysAgo = 7;
+    else if (range === "90d") daysAgo = 90;
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysAgo); // Set to X days ago
 
     // Aggregation pipeline
     const responseCounts = await Chat.aggregate([
-      { $match: { createdAt: { $gte: sixMonthsAgo } } }, // Filter last 6 months
+      { $match: { createdAt: { $gte: startDate } } }, // Filter by date range
       {
         $group: {
           _id: {
-            month: { $month: "$createdAt" }, // Extract month number
+            date: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, // Format as YYYY-MM-DD
             isGoodResponse: "$isGoodResponse",
           },
           count: { $sum: 1 },
@@ -51,21 +58,17 @@ exports.getResponseCounts = async (req, res) => {
       },
     ]);
 
-    // Format the data into { month: "January", good: X, bad: Y }
+    // Initialize chart data for the given time range
     const chartData = [];
+    const today = new Date();
 
-    // Get current month index (1 = Jan, 2 = Feb, etc.)
-    const currentMonth = new Date().getMonth() + 1; // JS months are 0-based
-    const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
+    for (let i = daysAgo - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(today.getDate() - i);
+      const formattedDate = date.toISOString().split("T")[0]; // Format as YYYY-MM-DD
 
-    // Initialize past 6 months data with 0 counts
-    for (let i = 5; i >= 0; i--) {
-      const monthIndex = (currentMonth - i + 11) % 12; // Ensure it wraps around
       chartData.push({
-        month: monthNames[monthIndex],
+        date: formattedDate,
         good: 0,
         bad: 0,
       });
@@ -73,8 +76,7 @@ exports.getResponseCounts = async (req, res) => {
 
     // Map aggregation results into chartData
     responseCounts.forEach((item) => {
-      const monthIndex = item._id.month - 1; // Convert MongoDB's month number (1-12) to array index
-      const chartIndex = chartData.findIndex((data) => data.month === monthNames[monthIndex]);
+      const chartIndex = chartData.findIndex((data) => data.date === item._id.date);
 
       if (chartIndex !== -1) {
         if (item._id.isGoodResponse === true) {
