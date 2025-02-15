@@ -13,21 +13,26 @@ const analyticsRoutes= require("./routes/analyticsRoutes");
 const app = express();
 app.use(express.json());
 
-// ✅ Middleware (CORS & JSON Parsing)
-app.use(cors({
-    origin: function (origin, callback) {
-      // Allow both localhost and the deployed frontend
-      const allowedOrigins = ['http://localhost:3000', 'https://admin-codey.vercel.app/'];
-      if (allowedOrigins.includes(origin) || !origin) {
-        callback(null, true); // Allow the request
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://admin-codey.vercel.app",
+];
+
+// ✅ Allow CORS for frontend
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
       } else {
-        callback(new Error('CORS policy violation')); // Reject the request
+        callback(new Error("CORS policy violation"));
       }
     },
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  }));
+    credentials: true, // ✅ Allow cookies/auth headers
+  })
+);
 
 // Connect to MongoDB
 mongoose.connect(`mongodb+srv://katsuragik919:gUxW6bdC56s2bgQE@csbackend.frzm8.mongodb.net/?retryWrites=true&w=majority&appName=CSBackend`)
