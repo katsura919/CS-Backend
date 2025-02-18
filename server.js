@@ -10,6 +10,8 @@ const feedbackRoutes = require("./routes/feedbackRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const analyticsRoutes= require("./routes/analyticsRoutes");
+const chatRoutes = require("./routes/chatRoutes");
+
 const app = express();
 app.use(express.json());
 
@@ -30,7 +32,7 @@ app.use(
     },
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true, // ✅ Allow cookies/auth headers
+    credentials: true, 
   })
 );
 
@@ -46,6 +48,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/chat", chatRoutes);
 
 
 const PORT = process.env.PORT || 5000;
