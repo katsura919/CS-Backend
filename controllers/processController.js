@@ -36,22 +36,22 @@ exports.getProcessById = async (req, res) => {
   }
 };
 
-exports.updateProcess = async (req, res) => {
-  try {
-    const { title, description, steps } = req.body;
-    const updatedProcess = await Process.findByIdAndUpdate(
-      req.params.id,
-      { title, description, steps },
-      { new: true, runValidators: true }
-    );
-    if (!updatedProcess) {
-      return res.status(404).json({ error: 'Process not found.' });
+  exports.updateProcess = async (req, res) => {
+    try {
+      const { title, description, steps } = req.body;
+      const updatedProcess = await Process.findByIdAndUpdate(
+        req.params.id,
+        { title, description, steps },
+        { new: true, runValidators: true }
+      );
+      if (!updatedProcess) {
+        return res.status(404).json({ error: 'Process not found.' });
+      }
+      res.json(updatedProcess);
+    } catch (error) {
+      res.status(500).json({ error: 'Error updating process.' });
     }
-    res.json(updatedProcess);
-  } catch (error) {
-    res.status(500).json({ error: 'Error updating process.' });
-  }
-};
+  };
 
 exports.deleteProcess = async (req, res) => {
   try {

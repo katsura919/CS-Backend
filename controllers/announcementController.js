@@ -1,4 +1,5 @@
 const Announcement = require("../models/announcementModel");
+const mongoose = require("mongoose")
 
 // 📌 Create a new announcement
 const createAnnouncement = async (req, res) => {
@@ -33,7 +34,14 @@ const getAnnouncements = async (req, res) => {
 const getAnnouncementById = async (req, res) => {
   try {
     const { id } = req.params;
-    const announcement = await Announcement.findById(id);
+
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid announcement ID" });
+    }
+
+    // Fetch announcement
+    const announcement = await Announcement.findById(id).lean(); // Using `.lean()` for better performance
 
     if (!announcement) {
       return res.status(404).json({ error: "Announcement not found" });
@@ -42,7 +50,7 @@ const getAnnouncementById = async (req, res) => {
     res.json(announcement);
   } catch (error) {
     console.error("Error fetching announcement:", error);
-    res.status(500).json({ error: "An error occurred while fetching the announcement" });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
