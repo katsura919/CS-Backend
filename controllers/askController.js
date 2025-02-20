@@ -35,7 +35,7 @@ exports.askAI = async (req, res) => {
     const context = await retrieveContext();
     
     // Step 2: Construct AI Prompt with History
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-pro-exp-02-05" });
 
     const formattedHistory = history
       ?.map((msg) => `**${msg.role === "user" ? "User" : "AI"}:** ${msg.content}`)
@@ -49,7 +49,7 @@ exports.askAI = async (req, res) => {
     2. **For sensitive topics:** Respond with empathy and concise guidance.
     3. **If the question is not school-related:** Politely redirect the user to school-related topics.
     4. **Keep responses concise, clear, and engaging.**
-    5. **Always ask if the user needs anything else if necessary and match the language that the user is currently using:** 
+    5. **Ask if the user needs anything else if necessary** 
     6. **Always Match the language of the user's query. If the user asks in English, respond in English. If the user asks in another language, respond in that language while maintaining clarity and accuracy.**
 
     **Contextual Information:**
