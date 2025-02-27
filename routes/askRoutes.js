@@ -1,9 +1,10 @@
-// routes/askRoutes.js
-const express = require("express");
-const { askAI } = require("../controllers/askController");
-
+const express = require('express');
 const router = express.Router();
+const askController = require('../controllers/askController');
 
-router.post("/chat", askAI);
+// Route definition
+router.post('/chat/:slug?', (req, res) => {
+    askController.askAI(req, res);
+});
 
 module.exports = router;

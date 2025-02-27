@@ -4,11 +4,10 @@ const mongoose = require('mongoose');
 const cors = require("cors");
 
 //Routes
-const processRoutes = require('./routes/processRoutes');
+const faqRoutes = require('./routes/faqRoutes');
 const askRoutes = require("./routes/askRoutes");
 const feedbackRoutes = require("./routes/feedbackRoutes");
-const announcementRoutes = require("./routes/announcementRoutes");
-const adminRoutes = require("./routes/adminRoutes");
+const tenantRoutes = require("./routes/tenantRoutes");
 const analyticsRoutes= require("./routes/analyticsRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 
@@ -42,11 +41,10 @@ mongoose.connect(`mongodb+srv://katsuragik919:gUxW6bdC56s2bgQE@csbackend.frzm8.m
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Use Routes
-app.use('/api/processes', processRoutes);
+app.use("/api/tenant", tenantRoutes);
+app.use('/api/faqs', faqRoutes);
 app.use("/api/ask", askRoutes);
 app.use("/api/feedback", feedbackRoutes);
-app.use("/api/announcements", announcementRoutes);
-app.use("/api/admin", adminRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/chat", chatRoutes);
 
