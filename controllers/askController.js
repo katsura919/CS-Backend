@@ -1,105 +1,125 @@
-const express = require('express');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const Chat = require("../models/chatModel");
-const FAQ = require("../models/faqModel");
-const Tenant = require("../models/tenantModel");
+const Session = require("../models/sessionModel");
+const Knowledge = require("../models/knowledgeModel");
+const Business = require("../models/businessModel");
 
-// Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// Fetch business and its knowledge base by slug
+const fetchKnowledgeBySlug = async (slug) => {
+  const business = await Business.findOne({ slug });
+  if (!business) return { knowledge: null, business: null };
 
-// Helper function to fetch FAQs by slug
-const fetchFAQsBySlug = async (slug) => {
-  try {
-      const tenant = await Tenant.findOne({ slug });
-      if (!tenant) {
-          return { faqs: null, tenantId: null }; // Return null for both if tenant not found
-      }
-      const faqs = await FAQ.find({ tenantId: tenant._id })
-          .sort({ createdAt: -1 })
-          .select('_id question answer');
-      return { faqs, tenantId: tenant._id }; // Return both FAQs and tenantId
-  } catch (error) {
-      console.error('Error fetching FAQs:', error);
-      return { faqs: null, tenantId: null }; // Return null for both on error
-  }
+  const knowledge = await Knowledge.find({ businessId: business._id })
+    .sort({ createdAt: -1 })
+    .select('title content');
+
+  return { knowledge, business };
 };
 
-// Enhanced prompt construction
-const constructPrompt = ({ query, faqs, history }) => `
-You are Codey, a friendly and supportive virtual assistant.
-You specialize in anwering user questions.
+// Construct the main prompt for Gemini
+const constructPrompt = ({ query, knowledge, history, isEscalation }) => `
+You are a friendly and professional virtual assistant helping users with business inquiries.
 
-**Guidelines:**
-1. Maintain professional but friendly tone
-2. Use structured responses with bullet points
-3. Match user's language preference
-4. Be concise but thorough
-5. Redirect non-school topics politely
+${!isEscalation && knowledge ? "**Business Information:**\n" +
+  knowledge.map(k => `${k.title}: ${k.content}`).join("\n") + "\n" : ""}
 
-${faqs ? "**Relevant FAQs:**\n" + 
-    faqs.map(faq => `${faq.question}: ${faq.answer}`).join("\n") + "\n" : ""}
+${history ? "**Previous Messages:**\n" +
+  history.map(msg => `**${msg.role === "user" ? "User" : "AI"}:** ${msg.content}`).join("\n") + "\n" : ""}
 
-${history ? "**Previous Conversation Context:**\n" + 
-    history.map(msg => `**${msg.role === "user" ? "User" : "AI"}:** ${msg.content}`).join("\n") + "\n" : ""}
-
-**Current Question:**
+**User Query:**
 ${query}
 
-Please respond with a helpful, structured answer.
-**Important Instructions:**
-1. Only answer based on the provided FAQ information
-2. If the question isn't covered in the FAQs, politely tell the user
-3. Do not make assumptions or provide information not found in the FAQs
-4. Structure your response using bullet points if needed
-5. Keep answers focused and relevant to the provided information
+**Important Notes:**
+- Only answer based on the knowledge above.
+- If unsure, say "I'm not sure about that" instead of guessing.
+- Keep responses concise, relevant, and friendly.
+${isEscalation ? `
+- This user wants to escalate. Do NOT provide additional info or business details.
+- Respond only with a polite escalation message and instructions.
+` : ""}
+`;
 
-Please provide a response based only on the FAQ information above.`;
+// Predefined polite escalation message (more general)
+const escalationMessage = `I understand you'd like further assistance. While I can't connect you directly to a representative, we can escalate your concern by clicking below.
 
-// Main route handler (Rate limiter removed)
+[Click here to create a ticket.](escalate://now)`;
+
+
+
+
+
 exports.askAI = async (req, res) => {
   try {
-      const { query, history } = req.body;  // Added history parameter
-      const slug = req.params.slug;
+    const { query, history, sessionId, customerDetails } = req.body;
+    const { slug } = req.params;
 
-      // Input validation
-      if (!query || typeof query !== 'string') {
-          return res.status(400).json({ 
-              error: "Query must be a non-empty string" 
-          });
-      }
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: "Query must be a non-empty string" });
+    }
 
-      // Fetch FAQs and tenantId if slug is provided
-      const { faqs, tenantId } = slug ? await fetchFAQsBySlug(slug) : { faqs: null, tenantId: null };
+    // Get business knowledge and metadata
+    const { knowledge, business } = await fetchKnowledgeBySlug(slug);
+    if (!business) {
+      return res.status(404).json({ error: "Business not found" });
+    }
 
-      // Construct AI Prompt with History and FAQs
-      const model = genAI.getGenerativeModel({ 
-          model: "gemini-2.0-pro-exp-02-05" 
+    // Handle or create session
+    let session;
+    if (sessionId) {
+      session = await Session.findById(sessionId);
+    }
+    if (!session) {
+      session = await Session.create({
+        businessId: business._id,
+        customerDetails: customerDetails || {}
       });
+    }
 
-      // Generate AI Response
-      const result = await model.generateContent(
-          constructPrompt({ query, faqs, history })
-      );
-      const responseText = result.response.text();
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-      // Save individual query and response to chatModel
-      const chat = new Chat({ 
-          query, 
-          response: responseText,
-          tenantId // Include tenantId here
-      });
-      await chat.save();
+    // Step 1: Ask Gemini if escalation is required
+    const escalationCheckPrompt = `
+The user asked: "${query}"
 
-      res.json({
-          answer: responseText,
-          id: chat._id,
-          faqs: faqs || []
-      });
+Based on this query, does it sound like the user is asking for help that requires escalation to a human representative?
+Respond with only "yes" or "no".
+`;
+    const escalationResult = await model.generateContent(escalationCheckPrompt);
+    const escalationDecision = escalationResult.response.text().trim().toLowerCase();
+    const needsEscalation = escalationDecision === "yes";
+
+    let responseText;
+
+    if (needsEscalation) {
+      // Use fixed polite escalation message (avoids irrelevant info)
+      responseText = escalationMessage;
+    } else {
+      // Step 2: Generate the AI response normally
+      const chatPrompt = constructPrompt({ query, knowledge, history, isEscalation: false });
+      const result = await model.generateContent(chatPrompt);
+      responseText = result.response.text();
+    }
+
+    // Save chat to DB
+    const chat = await Chat.create({
+      businessId: business._id,
+      sessionId: session._id,
+      query,
+      response: responseText
+    });
+
+    // Respond to frontend
+    res.json({
+      answer: responseText,
+      chatId: chat._id,
+      sessionId: session._id,
+      knowledge: knowledge || []
+    });
+
   } catch (error) {
-      console.error("Error querying Gemini AI:", error);
-      res.status(500).json({ 
-          error: "An error occurred while processing your request" 
-      });
+    console.error("Error in askAI:", error);
+    res.status(500).json({ error: "Server error processing the chat" });
   }
 };

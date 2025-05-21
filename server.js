@@ -7,9 +7,10 @@ const cors = require("cors");
 const faqRoutes = require('./routes/faqRoutes');
 const askRoutes = require("./routes/askRoutes");
 const feedbackRoutes = require("./routes/feedbackRoutes");
-const tenantRoutes = require("./routes/tenantRoutes");
+const authRoutes = require("./routes/authRoutes");
 const analyticsRoutes= require("./routes/analyticsRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const knowledgeRoutes = require("./routes/knowledgeRoutes");
 
 const app = express();
 app.use(express.json());
@@ -41,12 +42,14 @@ mongoose.connect(`mongodb+srv://katsuragik919:gUxW6bdC56s2bgQE@csbackend.frzm8.m
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Use Routes
-app.use("/api/tenant", tenantRoutes);
-app.use('/api/faqs', faqRoutes);
-app.use("/api/ask", askRoutes);
-app.use("/api/feedback", feedbackRoutes);
-app.use("/api/analytics", analyticsRoutes);
-app.use("/api/chat", chatRoutes);
+app.use("/auth", authRoutes);
+app.use("/knowledge", knowledgeRoutes);
+// app.use('/api/faqs', faqRoutes);
+app.use("/ask", askRoutes);
+// app.use("/api/feedback", feedbackRoutes);
+// app.use("/api/analytics", analyticsRoutes);
+// app.use("/api/chat", chatRoutes);
+
 
 
 const PORT = process.env.PORT || 5000;

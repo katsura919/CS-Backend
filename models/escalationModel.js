@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const chatSchema = new mongoose.Schema(
+const escalationSchema = new mongoose.Schema(
   {
     businessId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -12,17 +12,28 @@ const chatSchema = new mongoose.Schema(
       ref: 'Session',
       required: true,
     },
-    query: {
+    caseNumber: {
+      type: String,
+      required: true,
+      unique: true, 
+    },
+    customerName: {
       type: String,
       required: true,
     },
-    response: {
+    customerEmail: {
       type: String,
       required: true,
     },
-    isGoodResponse: {
-      type: Boolean,
-      default: null,
+    customerPhone: {
+      type: String,
+    },
+    concern: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
     },
   },
   {
@@ -30,4 +41,4 @@ const chatSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('Chat', chatSchema);
+module.exports = mongoose.model('Escalation', escalationSchema);

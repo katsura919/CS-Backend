@@ -1,33 +1,29 @@
 const mongoose = require('mongoose');
 
-const chatSchema = new mongoose.Schema(
+const knowledgeSchema = new mongoose.Schema(
   {
     businessId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Business',
       required: true,
     },
-    sessionId: {
+    categoryId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Session',
+      ref: 'Category',
       required: true,
     },
-    query: {
+    title: {
       type: String,
       required: true,
     },
-    response: {
+    content: {
       type: String,
       required: true,
-    },
-    isGoodResponse: {
-      type: Boolean,
-      default: null,
     },
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true, 
   }
 );
 
-module.exports = mongoose.model('Chat', chatSchema);
+module.exports = mongoose.model('Knowledge', knowledgeSchema);

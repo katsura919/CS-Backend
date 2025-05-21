@@ -1,4 +1,4 @@
-const FAQ = require('../models/faqModel');
+const FAQ = require('../models/knowledgeModel');
 const generateEmbedding = require("../utils/generateEmbedding");
 
 exports.createFAQ = async (req, res) => {
