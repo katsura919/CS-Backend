@@ -41,15 +41,6 @@ ${isEscalation ? `
 ` : ""}
 `;
 
-// Predefined polite escalation message (more general)
-const escalationMessage = `I understand you'd like further assistance. While I can't connect you directly to a representative, we can escalate your concern by clicking below.
-
-[Click here to create a ticket.](escalate://now)`;
-
-
-
-
-
 exports.askAI = async (req, res) => {
   try {
     const { query, history, sessionId, customerDetails } = req.body;
@@ -72,8 +63,7 @@ exports.askAI = async (req, res) => {
     }
     if (!session) {
       session = await Session.create({
-        businessId: business._id,
-        customerDetails: customerDetails || {}
+        businessId: business._id
       });
     }
 
@@ -86,6 +76,7 @@ The user asked: "${query}"
 Based on this query, does it sound like the user is asking for help that requires escalation to a human representative?
 Respond with only "yes" or "no".
 `;
+
     const escalationResult = await model.generateContent(escalationCheckPrompt);
     const escalationDecision = escalationResult.response.text().trim().toLowerCase();
     const needsEscalation = escalationDecision === "yes";
@@ -93,10 +84,21 @@ Respond with only "yes" or "no".
     let responseText;
 
     if (needsEscalation) {
-      // Use fixed polite escalation message (avoids irrelevant info)
-      responseText = escalationMessage;
+      // Step 2: Let Gemini generate a polite escalation message with an acknowledgment
+      const escalationResponsePrompt = `
+The user asked: "${query}"
+
+Write a short and polite acknowledgment about this query in one sentence.
+Then follow it with: "To escalate this concern, [click here](escalate://now)."
+Do NOT include business-specific information.
+Format it like:
+"[acknowledgement]. To escalate this concern, [click here](escalate://now)."
+`;
+
+      const escalationResponse = await model.generateContent(escalationResponsePrompt);
+      responseText = escalationResponse.response.text().trim();
     } else {
-      // Step 2: Generate the AI response normally
+      // Step 3: Generate the AI response normally
       const chatPrompt = constructPrompt({ query, knowledge, history, isEscalation: false });
       const result = await model.generateContent(chatPrompt);
       responseText = result.response.text();
