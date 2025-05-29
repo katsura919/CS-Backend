@@ -13,7 +13,7 @@ const fetchKnowledgeBySlug = async (slug) => {
 
   const knowledge = await Knowledge.find({ businessId: business._id })
     .sort({ createdAt: -1 })
-    .select('title content');
+    .select('title content'); 
 
   return { knowledge, business };
 };
